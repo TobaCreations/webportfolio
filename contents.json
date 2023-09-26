@@ -1,0 +1,42 @@
+{
+  "type": "Web",
+  "items": {
+    "one": {
+      "type": "Page",
+      "name": "One",
+      "items": {
+        "gibberish": {
+          "type": "Paragraph",
+          "text": "WOwokgro gijd oisjg isjr <b> djfiwef</b>",
+          "attributes": {
+            "class": "bruh"
+          }
+        },
+        "text": {
+          "type": "Paragraph",
+          "text": "WOwokgro gijd oisjg isjr <b> djfiwef</b>",
+          "attributes": {
+            "custom": "bruh"
+          }
+        },
+        "h1": {
+          "type": "Text",
+          "url": "",
+          "text": "dfdfwefwef",
+          "attributes": {
+            "class": "bruh"
+          }
+        }
+      }
+    },
+    "global": {
+      "type": "Database",
+      "items": {
+        "whatehufheiu": {
+          "type": "Paragraph",
+          "text": "+420733663595"
+        }
+      }
+    }
+  }
+}
