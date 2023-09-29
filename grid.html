@@ -22,6 +22,94 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
         integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
     <script>
+        class ItemList {
+            constructor(items) {
+                this.input = items;
+                if(items.length > 0) this.context = items[0].context;
+            }
+
+            get items() {
+                return this.input;
+            }
+
+            set items(items) {
+                this.input = items;
+            }
+
+            get coords() {
+                return this.items.map(item => item.coords);
+            }
+
+            get empty() {
+                return this.items.length == 0;
+            }
+
+            copy() {
+                return new CoordsList(this.items);
+            }
+
+            inRow(row) {
+                if(!this.empty) this.items = this.items.filter(item => item.coords[0] == row);
+                return this;
+            }
+
+            inColumn(column) {
+                if(!this.empty) this.items = this.items.filter(item => item.coords[1] == column);
+                return this;
+            }
+
+            superior() {
+                if(!this.empty) {this.items = this.items.filter(item => {
+                    let belows = this.context.getRelativeItemsInGrid(item.coords, [[1, 0]])
+                    if (belows.length < 1) return false;
+                    return belows[0].isItem();
+                })}
+                return this;
+            }
+
+            above(row) {
+                if(!this.empty) this.items = this.items.filter(hole => hole.coords[0] < row);
+                return this;
+            }
+
+            below(row) {
+                if(!this.empty) this.items = this.items.filter(item => item.coords[0] > row);
+                return this;
+            }
+
+            aboveCoords(coords) {
+                if(!this.empty) this.above(coords[0]).inColumn(coords[1]);
+                return this
+            }
+
+            belowCoords(coords) {
+                if(!this.empty) this.below(coords[0]).inColumn(coords[1]);
+                return this
+            }
+
+            fromCoords(coordsArray, context) {
+                this.context = context;
+                this.items = coordsArray.map(coords => this.context.getGridItem(coords));
+                return this;
+            }
+
+            fromRelativeCoords(baseCoords, relativeCoordsArray, context) {
+                this.context = context;
+                let coordsArray = this.context.getRelativeItemsInGrid(baseCoords, relativeCoordsArray);
+                return this.fromCoords(coordsArray, context);
+            }
+
+            mergeList(ItemList) {
+                this.items = this.items.concat(ItemList.items);
+                return this
+            }
+
+            pushItem(Item) {
+                this.input.push(Item);
+                return this;
+            }
+        }
+
         class Grid {
             constructor() {
                 this.items = [];
@@ -30,7 +118,7 @@
 
             generateId() {
                 let id = this.items.length;
-                while (this.items.find(obj => {return obj.id === id})) {
+                while (this.items.find(obj => { return obj.id === id })) {
                     id++;
                 }
                 return id;
@@ -47,7 +135,7 @@
             }
 
             newVirtualItemAt(coords) {
-                this.setGridItem(coords, this.newVirtualItem());
+                this.setItemPosition(this.newVirtualItem(), coords);
             }
 
             newHole() {
@@ -55,14 +143,22 @@
             }
 
             newHoleAt(coords) {
-                this.setGridItem(coords, this.newHole());
+                this.setItemPosition(this.newHole(), coords);
+            }
+
+            newBlock() {
+                return new GridBlock(this.generateId(), this);
+            }
+
+            newBlockAt(coords) {
+                this.setItemPosition(this.newBlock(), coords);
             }
 
             generateItems() {
-                for (let i = 0; i < 32; i++) {
+                for (let i = 0; i < 33; i++) {
                     this.generateNewItem();
                 }
-                for (let i = 0; i < 8; i++) {
+                for (let i = 0; i < 3; i++) {
                     this.items.push(this.newVirtualItem());
                 }
                 return this.items;
@@ -78,9 +174,10 @@
                     grid.push([])
                     for (let j = 0; j < width; j++) {
                         let item = newItem()
-                        grid[i][j] = { id: acumulator, neighbors: getNeighbors([i, j]) };
+                        grid[i][j] = { id: acumulator, neighbors: getNeighborItems([i, j]) };
                     }
                 }*/
+                this.height = grid.length;
                 console.log(this.grid);
                 return this.grid;
             }
@@ -88,32 +185,33 @@
             updateItemsCoords() {
                 this.grid.forEach((row, rowIndex) => {
                     row.forEach((item, columnIndex) => {
-                        if(item.expanded) {
+                        if (item.expanded) {
 
                         }
                         else {
-                            item.coords = [rowIndex,columnIndex];
+                            item.coords = [rowIndex, columnIndex];
+                            item.clean();
                         }
                     });
                 });
             }
 
-            getNeighbors(coords) {
+            getNeighborItems(coords) {
                 let relatives = [[0, 1], [0, -1], [1, 0], [-1, 0]];
                 return this.getRelativeItemsInGrid(coords, relatives);
             }
 
             getExpandableDiagonalCoords(coords) {
-                let relatives = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
+                let relatives = [[1, 1], [-1, 1], [1, -1], [-1, -1]]; //Preferance in which diagonals to expand
                 let diagonalNeighbors = this.getRelativeCoordsInGrid(coords, relatives);
                 let fitness = Array(4);
                 diagonalNeighbors.forEach((diagonal, index) => {
                     console.log(diagonal);
-                    if(diagonal) {
+                    if (diagonal) {
                         let expandCoords = this.getAllExpandCoords(coords, diagonal)
                         let acumulator = 0;
                         expandCoords.forEach(itemCoords => {
-                            acumulator += !this.getGridItem(itemCoords).isItem()
+                            acumulator += !this.getGridItem(itemCoords).isItem() //Count all holes, virtual items and blocks - preferably expand there
                         });
                         fitness[index] = acumulator;
                     };
@@ -134,24 +232,42 @@
             }*/
 
             expand(coords) {
-                let item = this.getGridItem(coords);
-                let diagonal = this.getExpandableDiagonalCoords(coords);
-                let fields = this.getAllExpandCoords(coords, diagonal);
-                let conflicting = fields.filter(item => {return item != coords});
-                console.log("conflicting",conflicting);
-                fields.forEach(coords => {this.setGridItem(coords, item)});
+                let item = this.getGridItem(coords);    //base item
+                let diagonal = this.getExpandableDiagonalCoords(coords); //direction in which it expands
+                let fields = this.getAllExpandCoords(coords, diagonal); //which fields does it overflow
+                let conflicting = fields.filter(item => { return item != coords });   //remove base item from overflowed items
+                let conflictingItems = [];
+                conflicting.forEach((coords) => { //get items on position, remove holes
+                    let item = this.getGridItem(coords)
+                    if (item.isItem()) conflictingItems.push(item);
+                });
+                fields.forEach(coords => { this.newBlockAt(coords) }); //create block items on overflowed positions
+                conflictingItems.sort(sortItemByNeighborsAsc); //Find items with least neigbors 
+
+                console.log(conflictingItems);
+
+
+
                 this.updateItemsCoords();
                 this.drawGrid();
             }
 
-            setGridItem(coords, item) {
+            setGridItem(item, coords) {
                 let [row, column] = coords;
+                if (row < 0 || column >= this.width || column < 0 || row >= this.height) {
+                    throw new Error(`Trying to set item outside of grid bounds ${coords.join()} at item id ${item.id}`);
+                }
                 this.grid[row][column] = item;
             }
 
             getRelativeItemsInGrid(baseCoords, relativeCoordsArray) {
-                let array = this.getRelativeCoordsInGrid(baseCoords, relativeCoordsArray);
-                return array.map((coords) => {this.getGridItem(coords)});
+                let array = this.getRelativeCoordsInGrid(baseCoords, relativeCoordsArray).filter(n => n);
+                let items = array.map((coords) => this.getGridItem(coords));
+                return items;
+            }
+
+            getRelativeItemInGrid(baseCoords, relativeCoords) {
+                return this.getRelativeItemsInGrid(baseCoords,[relativeCoords])[0];
             }
 
             getRelativeCoordsInGrid(baseCoords, relativeCoordsArray) {
@@ -175,27 +291,62 @@
                 return this.grid[row] ? (this.grid[row][column] ? true : false) : false;
             }
 
-            coordsHaveItem(coords) {
-                return getGridItem(coords).isItem();
-            }
-
             getGridItem(coords) {
-                if(!this.coordsInGrid(coords)) {
-                    console.error("Cannot get item on non-existing coordinates",coords,this.grid);
+                if (!this.coordsInGrid(coords)) {
+                    console.error("Cannot get item on non-existing coordinates", coords, this.grid);
                     return null
                 };
                 let [row, column] = coords;
                 return this.grid[row][column];
             }
 
-            getAllHoles() {
-                return this.grid.flat(1).filter(obj => {return !obj.isItem()});
+            /*getAllHoles() {
+                return new ItemList(this.grid.flat(1).filter(obj => { return obj.isHole()}));
+            }
+
+            getVirtualItemsSuperior() {
+                let virtuals = this.grid.flat(1).filter(obj => { return obj.isVirtual() });
+                let superiors = virtuals.filter(item => {
+                    let belows = this.getRelativeItemsInGrid(item.coords, [[1, 0]])
+                    if (belows.length < 1) return false;
+                    return belows[0].isItem();
+                })
+                return superiors;
+            }
+
+            getHolesInRow(row) {
+                return this.grid[row].filter(obj => { return obj.isHole() })
+            }
+
+            getHolesInColumn(column) {
+                let holes = [];
+                this.grid.forEach(row => { if (row[column].isHole()) holes.push(row[column]) })
+                return holes;
+            }
+
+            getHolesInColumnFromRange(coords, holesAbove) {
+                holesAbove = holesAbove || false;
+                let [row, column] = coords;
+                return this.getHolesInColumn(column).filter(hole => {
+                    return (holesAbove ? hole.coords[1] < row : hole.coords[1] > row)
+                });
+            }*/
+
+            getItemList(getHoles, getVirtuals, getBlocks, getItems) {
+                let items = this.grid.flat(1).filter(obj => {
+                    if(getHoles && obj.isHole()) return true;
+                    if(getVirtuals && obj.isVirtual()) return true;
+                    if(getBlocks && !obj.isMovable()) return true;
+                    if(getItems && obj.isItem()) return true;
+                    return false;
+                })
+                return new ItemList(items);
             }
 
             getMoves(fromCoords, toCoords) {
                 let [fRow, fColumn] = fromCoords;
                 let [tRow, tColumn] = toCoords;
-                return [fRow - tRow, fColumn - tColumn];
+                return [tRow - fRow, tColumn - fColumn];
             }
 
             getDistance(fromCoords, toCoords) {
@@ -210,28 +361,111 @@
                 });
             }
 
-            offsetGridColumn(fromItem, down) {
-                down = down || false;
-                let baseCoords = fromItem.coords
-                let [fRow, fColumn] = baseCoords;
-                let lastRow = this.grid.length - 1;
-                if(!down) baseCoords = [lastRow, fColumn];
-                let count = lastRow - fRow + 1;
-
-                let item = down ? fromItem : this.getGridItem([lastRow, fColumn]);
-                let newCoords;
-                for (let i = 0; i < count; i++) {
-                    newCoords = this.getRelativeCoords(baseCoords, [down ? i : -i,0])
-                    item = this.newItemPosition(item, newCoords)
+            gridHorizontally(fromItem, direction) {
+                let baseCoords = fromItem.coords;
+                let toItem = this.getRelativeItemInGrid(baseCoords, [0, direction]);
+                let remaining;
+                if(fromItem.isMovable) {
+                    remaining = this.offsetGridColumn(fromItem, false);
                 }
 
-                if(down) {this.newHoleAt(baseCoords)}
-                else {this.newVirtualItemAt(baseCoords)}
+                if (toItem.isItem()) {
+                    let holes = this.getItemList(1,1).aboveCoords(toItem.coords);
+                    if (holes.length > 0) { //If holes above, fill first found else offset column down
+                        remaining = this.offsetItemsVertically(toItem, holes[0])
+                    } else {
+                        remaining = this.offsetGridColumn(toItem, true)
+                    }
+                }
+                remaining =  this.offsetGridRow(fromItem, direction);
+                console.log(remaining);
+/*
+                let baseNewItem = this.getGridItem(baseCoords)
+                if (baseNewItem.isHole()) {
+                    this.offsetGridColumn(baseNewItem, false)
+                };*/
+
 
                 this.updateItemsCoords();
                 this.drawGrid();
-                if(item.isItem()) console.warn("Offsetting valid item out of grid",item,newCoords);
+            }
+
+            compactGrid() {
+                let toCompact = this.getVirtualItemsSuperior();
+                toCompact.forEach(item => {
+                    this.offsetGridColumn(item, 0);
+                })
+            }
+
+            findPlaceForOutsider(item) {
+                let baseCoords = item.coords
+                let places = this.grid.flat(1).reverse().filter(obj => { return obj.isVirtual() || obj.isHole() });
+                let distances = places.map(place => this.getDistance(baseCoords, place.coords));
+                let coords = places[indexOfMin(distances)].coords;
+                this.setItemPosition(item, coords);
+                return coords;
+            }
+
+            offsetItemsVertically(fromItem, toItem) {
+                let baseCoords = fromItem.coords
+                let targetCoords = toItem.coords
+                let moves = this.getMoves(baseCoords, targetCoords);
+                if (moves[1] != 0) console.error("Cannot move items horizontally", fromItem, toItem);
+                let count = Math.abs(moves[0]) + 1;
+                let down = moves[0] > 0;
+                let item = fromItem;
+                let newCoords;
+                for (let i = 0; i < count; i++) {
+                    if (!item.isMovable()) console.warn("Moving unmovable item", item);
+                    newCoords = this.getRelativeCoords(baseCoords, [down ? i : -i, 0]);
+                    item = this.setItemPosition(item, newCoords);
+                }
+
+                //console.log(fromItem, this.getGridItem(baseCoords));
+                if (this.getGridItem(baseCoords) == fromItem) {
+                    this.newHoleAt(baseCoords);
+                }
+
+                let bottomCoords = down ? targetCoords : baseCoords;
+                if (bottomCoords[0] == this.height - 1) {
+                    if (down) {
+                        if (item.isItem()) {
+                            let outsiderCoords = this.findPlaceForOutsider(item)
+                            console.warn("Offsetting valid item out of grid, found a place for outsider", item, newCoords, "moved to", outsiderCoords);
+                        }
+                    } else {
+                        this.newVirtualItemAt(bottomCoords);
+                    }
+                }
                 return item;
+            }
+
+            offsetGridColumn(referenceItem, down) {
+                down = down || false;
+                let lastItem = this.getGridItem([this.height - 1, referenceItem.coords[1]]);
+                let vectorLastItem = undefined, holeLastItemCoords = undefined;
+                if (down) { //If going down, try to find a possibleHole
+                    let relatives = [[0, 0], [0, 1], [0, -1]].reverse();
+                    let possibleNeighbors = this.getRelativeCoordsInGrid(referenceItem.coords, relatives).filter(n => n);
+                    let toReplace = this.getItemList(true, true);//.mergeList(this.getItemList(false, true).superior());  //Get list of all holes and superior virtual items;
+                    possibleNeighbors.forEach((neighborCoords, index) => {
+                        let holes = toReplace.belowCoords(neighborCoords).items;
+                        if (holes.length > 0) { //Convenient item to replace found, get item to replace him
+                            vectorLastItem = relatives[index]; //Get vector pointing from replacement item to hole
+                            holeLastItemCoords = holes[0].coords;
+                            lastItem = this.getRelativeItemInGrid(holes[0].coords, vectorLastItem.map(x => -x)); //Get replacement item (by flipping vector and accesing from neighbor)
+                        }
+                    });
+                } else {
+                    [referenceItem, lastItem] = [lastItem, referenceItem];
+                }
+                let remaining = this.offsetItemsVertically(referenceItem, lastItem);
+                if(holeLastItemCoords && remaining) {
+                    this.setItemPosition(remaining, holeLastItemCoords);
+                    return null;
+                } else {
+                    return remaining;
+                }
             }
 
             offsetGridRow(fromItem, direction) {
@@ -240,23 +474,23 @@
                 let item = fromItem;
                 let newCoords;
                 rowMoves.forEach(rowMove => {
+                    if (!item.isMovable()) console.warn("Moving unmovable item", item);
                     newCoords = this.getRelativeCoords(baseCoords, [0, rowMove]);
-                    console.log(newCoords);
-                    item = this.newItemPosition(item, newCoords)
+                    item = this.setItemPosition(item, newCoords)
                 });
-                this.newHoleAt(baseCoords);
-
-                this.updateItemsCoords();
-                this.drawGrid();
+                if (this.getGridItem(baseCoords) == fromItem) {
+                    this.newHoleAt(baseCoords);
+                }
                 //if(item.isItem()) console.warn("Offsetting valid item out of grid",item,newCoords);
                 return item;
             }
 
-            newItemPosition(item, toCoords) {
-                if(item.moved) console.warn("This item has already been moved",item)
+            setItemPosition(item, toCoords) {
+                //if(item.moved) console.warn("This item has already been moved",item)
+                item.coords = toCoords;
                 item.moved = true;
                 let previous = this.getGridItem(toCoords);
-                this.setGridItem(toCoords, item);
+                this.setGridItem(item, toCoords);
                 return previous;
             }
 
@@ -264,7 +498,7 @@
                 let acumulator = "";
                 this.grid.forEach(row => {
                     row.forEach(item => {
-                        acumulator += zeroPad(item.getNick(),2) + "  ";
+                        acumulator += zeroPad(item.getNick(), 2) + "  ";
                     });
                     acumulator += "\n\r";
                 });
@@ -294,17 +528,32 @@
                 this.context.expand(this.coords);
             }
 
+            clean() {
+                this.neighborsM = undefined;
+            }
+
             contract() {
                 this.expanded = false;
                 this.context.contract(this.coords);
             }
 
-            getNeighbors() {
-                this.context.getNeighbors(this.coords);
+            getNeighborItems() {
+                return this.context.getNeighborItems(this.coords);
             }
 
-            isItem() {return true;}
-            
+            getNeighborMovableItems(filterArray) { //get list of possible neighbors for each item which are movable (not blocks)
+                if (this.neighborsM) return this.neighborsM;
+                filterArray = filterArray || [];
+                let neighboring = this.getNeighborItems().filter(x => x);
+                this.neighborsM = neighboring.filter((item) => { return (!item.isMovable() || filterArray.includes(item)) })
+                return this.neighborsM;
+            }
+
+            isItem() { return true; }
+            isHole() { return false; }
+            isMovable() { return true; }
+            isVirtual() { return false; }
+
             getNick() {
                 return this.id;
             }
@@ -315,21 +564,31 @@
         }
 
         class GridHole extends GridItem {
-            isItem() {return false;}
+            isItem() { return false; }
+            isHole() { return true; }
             getNick() {
                 return "--";
             }
         }
-        class GridVirtual extends GridItem{
-            isItem() {return false;}
+        class GridVirtual extends GridItem {
+            isItem() { return false; }
+            isVirtual() { return true; }
             getNick() {
                 return "##";
             }
         }
 
+        class GridBlock extends GridItem {
+            isItem() { return false; }
+            isMovable() { return false; }
+            getNick() {
+                return "XX";
+            }
+        }
+
         const chunkArray = (arr, size) => {
-            let chunks=[];
-            for(let i=0; i<arr.length; i+=size){
+            let chunks = [];
+            for (let i = 0; i < arr.length; i += size) {
                 chunks.push(arr.slice(i, i + size));
             }
             return chunks;
@@ -341,10 +600,23 @@
             let direction = (from < to ? 1 : -1);
             let acumulator = [];
             for (let i = 0, number = from; i <= Math.abs(from - to); i++) {
-                acumulator.push(number); 
+                acumulator.push(number);
                 number += direction;
             }
             return acumulator;
+        }
+
+        const sortArraysAsc = (a, b) => {
+            if (a.length < b.length) return -1;
+            else if (a.length > b.length) return 1;
+            return 0;
+        }
+
+        const sortItemByNeighborsAsc = (a, b) => {
+            let [aC, bC] = [a, b].map(c => c.getNeighborMovableItems().length);
+            if (aC < bC) return -1;
+            if (bC > aC) return 1;
+            return 0;
         }
 
         const indexOfMax = (arr) => {
@@ -362,13 +634,29 @@
             return maxIndex;
         }
 
+
+        const indexOfMin = (arr) => {
+            if (arr.length === 0) return -1;
+            let min = arr[0];
+            let minIndex = 0;
+
+            for (let i = 1; i < arr.length; i++) {
+                if (arr[i] < min || min === null || min === undefined) {
+                    minIndex = i;
+                    min = arr[i];
+                }
+            }
+
+            return minIndex;
+        }
+
         /*
         Contract expanded items
-        Find all holes
-        Find neighboring holes
-        If found, expand there, otherwise expand up and right
-        Correct expand direction with borders
-        Expand the items, mark conflicting
+        ✓ Find all holes
+        ✓ Find neighboring holes
+        ✓ If found, expand there, otherwise expand up and right
+        ✓ Correct expand direction with borders
+        ✓ Expand the items, mark conflicting
         Is there any hole left?
         For each hole, find closest conflicting item to move in place
         Generate moves to do that
