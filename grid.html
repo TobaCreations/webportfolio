@@ -25,7 +25,7 @@
         class ItemList {
             constructor(items) {
                 this.input = items;
-                if(items.length > 0) this.context = items[0].context;
+                if (items.length > 0) this.context = items[0].context;
             }
 
             get items() {
@@ -53,41 +53,43 @@
             }
 
             inRow(row) {
-                if(!this.empty) this.items = this.items.filter(item => item.coords[0] == row);
+                if (!this.empty) this.items = this.items.filter(item => item.coords[0] == row);
                 return this;
             }
 
             inColumn(column) {
-                if(!this.empty) this.items = this.items.filter(item => item.coords[1] == column);
+                if (!this.empty) this.items = this.items.filter(item => item.coords[1] == column);
                 return this;
             }
 
             superior() {
-                if(!this.empty) {this.items = this.items.filter(item => {
-                    let belows = this.context.getRelativeItemsInGrid(item.coords, [[1, 0]])
-                    if (belows.length < 1) return false;
-                    return belows[0].isItem();
-                })}
+                if (!this.empty) {
+                    this.items = this.items.filter(item => {
+                        let belows = this.context.getRelativeItemsInGrid(item.coords, [[1, 0]])
+                        if (belows.length < 1) return false;
+                        return belows[0].isItem();
+                    })
+                }
                 return this;
             }
 
             above(row) {
-                if(!this.empty) this.items = this.items.filter(hole => hole.coords[0] < row);
+                if (!this.empty) this.items = this.items.filter(hole => hole.coords[0] < row);
                 return this;
             }
 
             below(row) {
-                if(!this.empty) this.items = this.items.filter(item => item.coords[0] > row);
+                if (!this.empty) this.items = this.items.filter(item => item.coords[0] > row);
                 return this;
             }
 
             aboveCoords(coords) {
-                if(!this.empty) this.above(coords[0]).inColumn(coords[1]);
+                if (!this.empty) this.above(coords[0]).inColumn(coords[1]);
                 return this
             }
 
             belowCoords(coords) {
-                if(!this.empty) this.below(coords[0]).inColumn(coords[1]);
+                if (!this.empty) this.below(coords[0]).inColumn(coords[1]);
                 return this
             }
 
@@ -120,7 +122,7 @@
                 this.width = 4;
             }
 
-            get height() {return this.grid.length;}
+            get height() { return this.grid.length; }
 
             generateId() {
                 let id = this.items.length;
@@ -141,7 +143,7 @@
             }
 
             newVirtualItem() {
-                let item =  new GridVirtual(this.generateId(), this);
+                let item = new GridVirtual(this.generateId(), this);
                 this.items.push(item);
                 return item;
             }
@@ -151,7 +153,7 @@
             }
 
             newHole() {
-                let item =  new GridHole(this.generateId(), this);
+                let item = new GridHole(this.generateId(), this);
                 this.items.push(item);
                 return item;
             }
@@ -282,7 +284,7 @@
             }
 
             getRelativeItemInGrid(baseCoords, relativeCoords) {
-                return this.getRelativeItemsInGrid(baseCoords,[relativeCoords])[0];
+                return this.getRelativeItemsInGrid(baseCoords, [relativeCoords])[0];
             }
 
             getRelativeCoordsInGrid(baseCoords, relativeCoordsArray) {
@@ -349,24 +351,13 @@
 
             getItemList(getHoles, getVirtuals, getBlocks, getItems) {
                 let items = this.items.filter(obj => {
-                    if(getHoles && obj.isHole()) return true;
-                    if(getVirtuals && obj.isVirtual()) return true;
-                    if(getBlocks && !obj.isMovable()) return true;
-                    if(getItems && obj.isItem()) return true;
+                    if (getHoles && obj.isHole()) return true;
+                    if (getVirtuals && obj.isVirtual()) return true;
+                    if (getBlocks && !obj.isMovable()) return true;
+                    if (getItems && obj.isItem()) return true;
                     return false;
                 })
                 return new ItemList(items);
-            }
-
-            getMoves(fromCoords, toCoords) {
-                let [fRow, fColumn] = fromCoords;
-                let [tRow, tColumn] = toCoords;
-                return [tRow - fRow, tColumn - fColumn];
-            }
-
-            getDistance(fromCoords, toCoords) {
-                let [rows, columns] = this.getMoves(fromCoords, toCoords);
-                return Math.abs(rows) + Math.abs(columns);
             }
 
             expandItem(coords) {
@@ -380,25 +371,25 @@
                 let baseCoords = fromItem.coords;
                 let toItem = this.getRelativeItemInGrid(baseCoords, [0, direction]);
                 let remaining;
-                if(fromItem.isMovable) {
+                if (fromItem.isMovable) {
                     remaining = this.offsetGridColumn(fromItem, false);
                 }
 
                 if (toItem.isItem()) {
-                    let holes = this.getItemList(1,1).aboveCoords(toItem.coords);
+                    let holes = this.getItemList(1, 1).aboveCoords(toItem.coords);
                     if (holes.length > 0) { //If holes above, fill first found else offset column down
                         remaining = this.offsetItemsVertically(toItem, holes[0])
                     } else {
                         remaining = this.offsetGridColumn(toItem, true)
                     }
                 }
-                remaining =  this.offsetGridRow(fromItem, direction);
+                remaining = this.offsetGridRow(fromItem, direction);
                 console.log(remaining);
-/*
-                let baseNewItem = this.getGridItem(baseCoords)
-                if (baseNewItem.isHole()) {
-                    this.offsetGridColumn(baseNewItem, false)
-                };*/
+                /*
+                                let baseNewItem = this.getGridItem(baseCoords)
+                                if (baseNewItem.isHole()) {
+                                    this.offsetGridColumn(baseNewItem, false)
+                                };*/
 
 
                 this.updateItemsCoords();
@@ -415,7 +406,7 @@
             findPlaceForOutsider(item) {
                 let baseCoords = item.coords
                 let places = this.grid.flat(1).reverse().filter(obj => { return obj.isVirtual() || obj.isHole() });
-                let distances = places.map(place => this.getDistance(baseCoords, place.coords));
+                let distances = places.map(place => getDistance(baseCoords, place.coords));
                 let coords = places[indexOfMin(distances)].coords;
                 this.setItemPosition(item, coords);
                 return coords;
@@ -424,7 +415,7 @@
             offsetItemsVertically(fromItem, toItem) {
                 let baseCoords = fromItem.coords
                 let targetCoords = toItem.coords
-                let moves = this.getMoves(baseCoords, targetCoords);
+                let moves = getMoves(baseCoords, targetCoords);
                 if (moves[1] != 0) console.error("Cannot move items horizontally", fromItem, toItem);
                 let count = Math.abs(moves[0]) + 1;
                 let down = moves[0] > 0;
@@ -475,7 +466,7 @@
                     [referenceItem, lastItem] = [lastItem, referenceItem];
                 }
                 let remaining = this.offsetItemsVertically(referenceItem, lastItem);
-                if(holeLastItemCoords && remaining) {
+                if (holeLastItemCoords && remaining) {
                     this.setItemPosition(remaining, holeLastItemCoords);
                     return null;
                 } else {
@@ -502,132 +493,155 @@
 
 
 
-            cascade(contextItem) {
-                console.time('test');
-                let outwards = contextItem.isItem();
+            cascade(startingItem, additionalTargetItems) {
+                let outwards = startingItem.isItem();
                 let targets = outwards ? this.getFillables() : this.getItemList(true, true, false, true).inRow(this.height - 1);
-                let nextItem, previousItem, cascadeItems = [contextItem];
+                if (additionalTargetItems) targets.mergeList(additionalTargetItems);
+                console.time("cascade")
+                let nextItem, previousItem, contextItem, cascadeItems = [startingItem];
                 let solutions = [];
-                let finished = false;
+                //.bind(this), _getFitness = getFitness.bind(this), _getMoveFitness = getMoveFitness.bind(this);
 
-                for(let solution = 0; solution < 10; solution++) {
-                    for (let iteration = 0; iteration < 100; iteration++) {
+                for (let solution = 0; solution < 20; solution++) {
+                    if (findSolution()) {
+                        let last = solutions.at(-1);
+                        let optimal = pickBestSolution(solutions);
+                        let place = Math.floor(solution / 3) + 1;
+
+                        if (optimal.length == place) break;
+                        else {
+                            this.items.forEach(item => item.clean());
+                            cascadeItems = optimal.slice(0, place) //Try starting from different segments on path to look for better solution
+                            optimal[place].deadEnd = true; //Stop from continuing the same path by blocking following element
+                            last[place].deadEnd = true;
+                            //console.log("BLOCKED",grid.items.filter(item => item.deadEnd).map(item => item.id), "ITEMS", cascadeItems.map(item => item.id));
+                        }
+                    }
+                }
+
+                if (solutions.length == 0) {
+                    console.log("Couldn't find solution");
+                    this.drawFitness(startingItem, [], []);
+                } else {
+                    console.log("Best solution");
+                    let optimal = pickBestSolution(solutions);
+                    this.drawFitness(optimal.slice(-1), [], optimal);
+                }
+                console.timeEnd('cascade');
+
+
+
+                function findSolution() {
+                    let success = false;
+                    const iterationLimit = 100;
+                    for (let iteration = 0; iteration < iterationLimit; iteration++) {
                         let i = cascadeItems.length - 1;
-                        [previousItem, nextItem] = [i > 0 ? cascadeItems[i - 1] : null, cascadeItems[i]];
+                        [previousItem, contextItem] = [i > 0 ? cascadeItems[i - 1] : null, cascadeItems[i]];
 
-                        let result = this.findNextMove(nextItem, previousItem, outwards, targets, cascadeItems);
-                        
-                        if(!result || cascadeItems.includes(result)) { //Dead-end, stepback, //In a loop, mark last item as a dead end
-                            if(i > 0) {
-                                console.log("Dead-end, stepback");
-                                nextItem.deadEnd = true;
-                                cascadeItems.pop();
+                        let result = findNextMove(contextItem, previousItem);
+
+                        if (!result || cascadeItems.includes(result)) { //Dead-end, stepback, //In a loop, mark last item as a dead end
+                            if (i > 0) {
+                                //console.log("Dead-end, stepback");
+                                cascadeItems.pop().deadEnd = true; //Remove last item an (contextItem) d mark it as dead-end
                             } else {
-                                console.log("Dead-end on the beggining, cannot continue with solution");
+                                //console.log("Dead-end on the beggining, cannot continue with solution");
                                 break;
                             }
-                        } else if(targets.includes(result)) { //Finished, execute;
-                            console.log("Found solution");
+                        } else if (targets.includes(result)) { //finished, append to solutions stack;
+                            //console.log("Found solution", cascadeItems.map(item => item.id));
                             cascadeItems.push(result);
                             solutions.push(cascadeItems);
-                            finished = true;
+                            success = true;
                             break;
                         } else { //Continue
                             cascadeItems.push(result);
-                        }                  
+                        }
+                        if (i + 1 == iterationLimit) { console.log("Solution failed, isn't iteration limit too low?", iterationLimit) }
                     }
-                    if(!finished) {console.log("Solution failed")
-                    } else {
-                        let optimal = solutions[0];
-                        console.log(cascadeItems);
-                        this.items.forEach(item => item.clean());
-                        solutions.sort(sortArraysAsc); //Sort different cascades ascending from shortest (most effective)
+                    return success;
+                }
 
-                        let place = Math.floor((solution + 2) / 2);
-                        if(optimal.length == place) break;
-                        console.log("Trying solution from " + place + " place");
-                        cascadeItems = optimal.slice(0, place) //Try starting from different segments on path to look for better solution
-                        optimal[place].deadEnd = true; //Stop from continuing the same path by blocking following element
+                function findNextMove(contextItem, previousItem) {
+                    let neighbors = contextItem.getNeighborItems().filter(item => (item != previousItem && !item.deadEnd));
+                    if (neighbors.length == 0) return false;
+                    neighbors.forEach((neighbor, index) => {
+                        let continuityVertical = previousItem ? getMoves(previousItem.coords, contextItem.coords)[0] != 0 : null;
+                        neighbor.fitness = getFitness(neighbor, contextItem, continuityVertical);
+                    })
+                    neighbors.sort((a, b) => b.fitness - a.fitness);
+                    //this.drawFitness(contextItem, neighbors, cascadeItems);
+                    if (neighbors[0].fitness > -800) return neighbors[0];
+                    neighbors.forEach(item => item.deadEnd = true); //Mark all as dead-ends
+                    return false;
+                }
+
+                function getFitness(item, contextItem, continuityVertical) { //Outwards = I carry overflowing item, Inwards = I am a hole/virtual in need of filling
+                    let [iCoords, cCoords] = [item.coords, contextItem.coords]
+                    let [iRow, iColumn] = iCoords; //Target neighbor
+                    let [cRow, cColumn] = cCoords; //Context item ( = from/to item)
+                    let moves = getMoves(iCoords, cCoords);
+                    /*if (outwards) moves = moves.flip(); //Vector always pointing in real move direction*/
+                    let [vRow, vColumn] = moves;
+
+                    let f = 0;
+                    //If is fillable and above, prefer when carrying item, avoid when carrying hole
+                    if (targets.includes(item)) {
+                        f += (outwards ? (vColumn > 0 ? 1000 : 800) : (vColumn > 0 ? -200 : 400))
                     }
+                    //Get highest rated possible target and include it into fitness
+                    let fittestTarget = targets.items[0];
+                    targets.items.forEach(target => {
+                        target.fitness = getMoveFitness(iCoords, target.coords) * target.weight * 20;
+                        if (fittestTarget.fitness < target.fitness) fittestTarget = target;
+                    });
+                    f += fittestTarget.fitness;
+                    let movingVertically = moves[0] != 0;
+                    //Award continuing in previous direction, slightly penalise changing direction
+                    if (continuityVertical != null) f += (movingVertically == continuityVertical ? 100 : (moves[0] > 0 ? 50 : -50));
+
+                    //Consider multiple movements of item, penalise combining directions
+                    let [mRow, mColumn] = item.moves;
+                    if (mRow * mColumn != 0) { //Item has been moved already
+                        f += -100;
+                        if ((movingVertically && mColumn != 0) || (!movingVertically && mRow != 0)) f += -300;
+                    }
+
+                    if (!item.isMovable()) f += -10000;
+
+                    return f;
+                    //if(fillables.includes(this.getRelativeItemsInGrid(iCoords, outwards ? [[-1,0],[1,0]] : [[-1,0]]);
                 }
 
-                if(solutions.length == 0) {
-                    console.log("Couldn't find solution");
-                    this.drawFitness(contextItem,[],[]);
-                    console.timeEnd('test');
-                } else {
-                    console.log("Best solution");
-                    this.drawFitness(solutions[0].slice(-1),[],solutions[0]);
-                    console.timeEnd('test');
-                }
-            }
-
-
-            findNextMove(contextItem, previousMovedItem, outwards, targets, cascadeItems) {
-                let neighbors = contextItem.getNeighborItems().filter(item => (item != previousMovedItem && !item.deadEnd));
-                if(neighbors.length == 0) return false;
-                neighbors.forEach((neighbor, index) => {
-                    let continuityVertical = previousMovedItem ? this.getMoves(previousMovedItem.coords, contextItem.coords)[0] != 0 : null;
-                    neighbor.fitness = this.getFitness(neighbor, contextItem, outwards, targets, continuityVertical);
-                })
-                neighbors.sort((a, b) => b.fitness - a.fitness);
-                //this.drawFitness(contextItem, neighbors, cascadeItems);
-                if(neighbors[0].fitness > -800) return neighbors[0];
-                neighbors.forEach(item => item.deadEnd = true); //Mark all as dead-ends
-                return false;
-            }
-
-            getFitness(item, contextItem, outwards, targets, continuityVertical) { //Outwards = I carry overflowing item, Inwards = I am a hole/virtual in need of filling
-                let [iCoords, cCoords] = [item.coords, contextItem.coords]
-                let [iRow, iColumn] = iCoords; //Target neighbor
-                let [cRow, cColumn] = cCoords; //Context item ( = from/to item)
-                let moves = this.getMoves(iCoords, cCoords);
-                /*if (outwards) moves = moves.flip(); //Vector always pointing in real move direction*/
-                let [vRow, vColumn] = moves;
-
-                let f = 0;
-                //If is fillable and above, prefer when carrying item, avoid when carrying hole
-                if(targets.includes(item)) {
-                    f += (outwards ? (vColumn > 0 ? 1000 : 800) : (vColumn > 0 ? -200 : 400))
-                }
-                //Get highest rated possible target and include it into fitness
-                let fittestTarget = targets.items[0];
-                targets.items.forEach(target => {
-                    target.fitness = this.getMoveFitness(iCoords, target.coords) * target.weight * 20;
-                    if(fittestTarget.fitness < target.fitness) fittestTarget = target;
-                });
-                f += fittestTarget.fitness;
-                let movingVertically = moves[0] != 0;
-                //Award continuing in previous direction, slightly penalise changing direction
-                if(continuityVertical != null) f += (movingVertically == continuityVertical ? 100 : (moves[0] > 0 ? 50 : -50));
-
-                //Consider multiple movements of item, penalise combining directions
-                let [mRow, mColumn] = item.moves;
-                if(mRow * mColumn != 0) { //Item has been moved already
-                    f += -100;
-                    if((movingVertically && mColumn != 0) || (!movingVertically && mRow != 0)) f += -300;
+                function getMoveFitness(fromCoords, toCoords) {
+                    let [fRow, fColumn] = fromCoords;
+                    let [tRow, tColumn] = toCoords;
+                    let [vertical, horizontal] = [tRow - fRow, tColumn - fColumn];
+                    vertical = Math.abs(vertical > 0 ? 3 * vertical : Math.floor(-1.5 * vertical)); //Prefer lower vertical move, instead of upper one
+                    horizontal = Math.abs(horizontal * 2)
+                    let divide = horizontal + vertical;
+                    return Math.round(500 / (divide < 1 ? 1 : divide));
                 }
 
-                if(!item.isMovable()) f+= -10000;
-
-                return f;
-                //if(fillables.includes(this.getRelativeItemsInGrid(iCoords, outwards ? [[-1,0],[1,0]] : [[-1,0]]);
-                
+                function pickBestSolution(solutions) {
+                    let minimalMoveSolutions = solutions.sort(sortArraysAsc).filter(solution => solution.length == solutions[0].length);
+                    //Sort different cascades ascending from shortest (most effective);
+                    let optimal = solutions[0];
+                    let optimalTurns = 100;
+                    minimalMoveSolutions.forEach(solution => {
+                        let count = getNumberOfDirections(solution);
+                        if (optimalTurns > count) {
+                            optimalTurns = count;
+                            optimal = solution;
+                        }
+                    })
+                    //console.log("optimal solution at the moment - moves",optimalTurns, optimal);
+                    return optimal;
+                }
 
             }
 
-
-            getMoveFitness(fromCoords, toCoords) {
-                let [fRow, fColumn] = fromCoords;
-                let [tRow, tColumn] = toCoords;
-                let [vertical, horizontal] = [tRow - fRow, tColumn - fColumn];
-                vertical = Math.abs(vertical > 0 ? 3 * vertical : Math.floor(-1.5 * vertical)); //Prefer lower vertical move, instead of upper one
-                horizontal = Math.abs(horizontal * 2)
-                let divide = horizontal + vertical;
-                return Math.round(500 / (divide < 1 ? 1 : divide));
-            }
-
-            getFillables() {return this.getItemList(true, true)};
+            getFillables() { return this.getItemList(true, true) };
 
             setItemPosition(item, toCoords) {
                 //if(item.moved) console.warn("This item has already been moved",item)
@@ -678,12 +692,12 @@
                 this.coords = coords;
             }*/
 
-            get row() {return this.coords[0]}
-            get column() {return this.coords[1]}
-            get weight() {return this.context.height - this.row;}
+            get row() { return this.coords[0] }
+            get column() { return this.coords[1] }
+            get weight() { return this.context.height - this.row; }
             get moves() {
-                if(this.newCoords == undefined) return [0,0];
-                else {return this.context.getMoves(this.coords, this.newCoords)}
+                if (this.newCoords == undefined) return [0, 0];
+                else { return this.context.getMoves(this.coords, this.newCoords) }
             }
 
             expand() {
@@ -770,6 +784,17 @@
             return acumulator;
         }
 
+        const getMoves = (fromCoords, toCoords) => {
+            let [fRow, fColumn] = fromCoords;
+            let [tRow, tColumn] = toCoords;
+            return [tRow - fRow, tColumn - fColumn];
+        }
+
+        const getDistance = (fromCoords, toCoords) => {
+            let [rows, columns] = getMoves(fromCoords, toCoords);
+            return Math.abs(rows) + Math.abs(columns);
+        }
+
         const sortArraysAsc = (a, b) => {
             if (a.length < b.length) return -1;
             else if (a.length > b.length) return 1;
@@ -814,7 +839,22 @@
             return minIndex;
         }
 
-        Array.prototype.flip = function() {return this.map(n => -n);}
+        const getNumberOfDirections = (itemArray) => {
+            let directions = 0
+            let previouslyHorizontal = null;
+            for (let i = 1; i < itemArray.length; i++) {
+                let vector = getMoves(itemArray[i - 1].coords, itemArray[i].coords);
+                let horizontal = (vector[0] == 0);
+                if (previouslyHorizontal == horizontal) { }
+                else {
+                    previouslyHorizontal = horizontal;
+                    directions++
+                }
+            }
+            return directions;
+        }
+
+        Array.prototype.flip = function () { return this.map(n => -n); }
         /*
         Contract expanded items
         ✓ Find all holes
